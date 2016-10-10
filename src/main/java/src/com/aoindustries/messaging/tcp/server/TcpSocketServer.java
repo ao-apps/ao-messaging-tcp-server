@@ -35,7 +35,7 @@ import java.net.Socket;
 import java.net.SocketException;
 
 /**
- * Client component for bi-directional messaging over TCP.
+ * Server component for bi-directional messaging over TCP.
  */
 public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 
