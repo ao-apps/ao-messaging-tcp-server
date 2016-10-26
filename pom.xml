@@ -44,7 +44,7 @@ along with ao-messaging-tcp-server.  If not, see <http://www.gnu.org/licenses />
 	</properties>
 
 	<name>AO Messaging TCP Server</name>
-	<url>${project.parent.url}tcp/server/</url>
+	<url>https://www.aoindustries.com${bookPath}/</url><!-- Can't inherit due to multi-module -->
 	<description>Server for asynchronous bidirectional messaging over TCP sockets.</description>
 	<inceptionYear>2014</inceptionYear>
 
