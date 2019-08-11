@@ -1,6 +1,6 @@
 /*
  * ao-messaging-tcp-server - Server for asynchronous bidirectional messaging over TCP sockets.
- * Copyright (C) 2014, 2015, 2016  AO Industries, Inc.
+ * Copyright (C) 2014, 2015, 2016, 2019  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -22,8 +22,8 @@
  */
 package com.aoindustries.messaging.tcp.server;
 
-import com.aoindustries.io.CompressedDataInputStream;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableInput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.messaging.base.AbstractSocketContext;
 import com.aoindustries.messaging.tcp.TcpSocket;
 import com.aoindustries.security.Identifier;
@@ -118,8 +118,8 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 												socket.setKeepAlive(KEEPALIVE);
 												socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
 												socket.setTcpNoDelay(TCP_NO_DELAY);
-												CompressedDataInputStream in = new CompressedDataInputStream(socket.getInputStream());
-												CompressedDataOutputStream out = new CompressedDataOutputStream(socket.getOutputStream());
+												StreamableInput in = new StreamableInput(socket.getInputStream());
+												StreamableOutput out = new StreamableOutput(socket.getOutputStream());
 												Identifier id = newIdentifier();
 												out.writeLong(id.getHi());
 												out.writeLong(id.getLo());
