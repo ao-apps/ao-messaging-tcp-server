@@ -92,63 +92,54 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 		if(isClosed()) throw new IllegalStateException("TcpSocketServer is closed");
 		synchronized(lock) {
 			if(serverSocket != null) throw new IllegalStateException();
-			executors.getUnbounded().submit(
-				new Runnable() {
-					@Override
-					public void run() {
-						try {
-							if(isClosed()) throw new SocketException("TcpSocketServer is closed");
-							final ServerSocket newServerSocket = new ServerSocket(port, backlog, bindAddr);
-							synchronized(lock) {
-								TcpSocketServer.this.serverSocket = newServerSocket;
-							}
-							// Handle incoming messages in a Thread, can try nio later
-							executors.getUnbounded().submit(
-								new Runnable() {
-									@Override
-									public void run() {
-										try {
-											while(true) {
-												synchronized(lock) {
-													// Check if closed
-													if(newServerSocket!=TcpSocketServer.this.serverSocket) break;
-												}
-												Socket socket = newServerSocket.accept();
-												long connectTime = System.currentTimeMillis();
-												socket.setKeepAlive(KEEPALIVE);
-												socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
-												socket.setTcpNoDelay(TCP_NO_DELAY);
-												StreamableInput in = new StreamableInput(socket.getInputStream());
-												StreamableOutput out = new StreamableOutput(socket.getOutputStream());
-												Identifier id = newIdentifier();
-												out.writeLong(id.getHi());
-												out.writeLong(id.getLo());
-												out.flush();
-												TcpSocket tcpSocket = new TcpSocket(
-													TcpSocketServer.this,
-													id,
-													connectTime,
-													socket,
-													in,
-													out
-												);
-												addSocket(tcpSocket);
-											}
-										} catch(Exception exc) {
-											if(!isClosed()) callOnError(exc);
-										} finally {
-											close();
-										}
-									}
-								}
-							);
-							if(onStart!=null) onStart.call(TcpSocketServer.this);
-						} catch(Exception exc) {
-							if(onError!=null) onError.call(exc);
-						}
+			executors.getUnbounded().submit(() -> {
+				try {
+					if(isClosed()) throw new SocketException("TcpSocketServer is closed");
+					final ServerSocket newServerSocket = new ServerSocket(port, backlog, bindAddr);
+					synchronized(lock) {
+						TcpSocketServer.this.serverSocket = newServerSocket;
 					}
+					// Handle incoming messages in a Thread, can try nio later
+					executors.getUnbounded().submit(() -> {
+						try {
+							while(true) {
+								synchronized(lock) {
+									// Check if closed
+									if(newServerSocket!=TcpSocketServer.this.serverSocket) break;
+								}
+								Socket socket = newServerSocket.accept();
+								long connectTime = System.currentTimeMillis();
+								socket.setKeepAlive(KEEPALIVE);
+								socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
+								socket.setTcpNoDelay(TCP_NO_DELAY);
+								StreamableInput in = new StreamableInput(socket.getInputStream());
+								StreamableOutput out = new StreamableOutput(socket.getOutputStream());
+								Identifier id = newIdentifier();
+								out.writeLong(id.getHi());
+								out.writeLong(id.getLo());
+								out.flush();
+								TcpSocket tcpSocket = new TcpSocket(
+									TcpSocketServer.this,
+									id,
+									connectTime,
+									socket,
+									in,
+									out
+								);
+								addSocket(tcpSocket);
+							}
+						} catch(Exception exc) {
+							if(!isClosed()) callOnError(exc);
+						} finally {
+							close();
+						}
+					});
+					if(onStart!=null) onStart.call(TcpSocketServer.this);
+				// TODO: Inspect and refactor all?
+				} catch(Exception exc) {
+					if(onError!=null) onError.call(exc);
 				}
-			);
+			});
 		}
 	}
 }
