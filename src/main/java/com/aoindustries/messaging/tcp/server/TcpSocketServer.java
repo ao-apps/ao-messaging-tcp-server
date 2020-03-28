@@ -135,7 +135,6 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 						}
 					});
 					if(onStart!=null) onStart.call(TcpSocketServer.this);
-				// TODO: Inspect and refactor all?
 				} catch(Exception exc) {
 					if(onError!=null) onError.call(exc);
 				}
