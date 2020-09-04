@@ -33,11 +33,15 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Server component for bi-directional messaging over TCP.
  */
 public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
+
+	private static final Logger logger = Logger.getLogger(TcpSocketServer.class.getName());
 
 	private static final boolean KEEPALIVE = true;
 
@@ -85,9 +89,10 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 	 * 
 	 * @throws IllegalStateException  if closed or already started
 	 */
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	public void start(
-		final Callback<? super TcpSocketServer> onStart,
-		final Callback<? super Exception> onError
+		Callback<? super TcpSocketServer> onStart,
+		Callback<? super Throwable> onError
 	) throws IllegalStateException {
 		if(isClosed()) throw new IllegalStateException("TcpSocketServer is closed");
 		synchronized(lock) {
@@ -128,15 +133,47 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 								);
 								addSocket(tcpSocket);
 							}
-						} catch(Exception exc) {
-							if(!isClosed()) callOnError(exc);
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t) {
+							if(!isClosed()) callOnError(t);
 						} finally {
-							close();
+							try {
+								close();
+							} catch(ThreadDeath td) {
+								throw td;
+							} catch(Throwable t) {
+								logger.log(Level.SEVERE, null, t);
+							}
 						}
 					});
-					if(onStart!=null) onStart.call(TcpSocketServer.this);
-				} catch(Exception exc) {
-					if(onError!=null) onError.call(exc);
+					if(onStart != null) {
+						logger.log(Level.FINE, "Calling onStart: {0}", TcpSocketServer.this);
+						try {
+							onStart.call(TcpSocketServer.this);
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t) {
+							logger.log(Level.SEVERE, null, t);
+						}
+					} else {
+						logger.log(Level.FINE, "No onStart: {0}", TcpSocketServer.this);
+					}
+				} catch(ThreadDeath td) {
+					throw td;
+				} catch(Throwable t) {
+					if(onError != null) {
+						logger.log(Level.FINE, "Calling onError", t);
+						try {
+							onError.call(t);
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t2) {
+							logger.log(Level.SEVERE, null, t2);
+						}
+					} else {
+						logger.log(Level.FINE, "No onError", t);
+					}
 				}
 			});
 		}
