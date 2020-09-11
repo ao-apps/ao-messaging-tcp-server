@@ -26,6 +26,7 @@ import com.aoindustries.concurrent.Callback;
 import com.aoindustries.concurrent.Executors;
 import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
+import com.aoindustries.lang.Throwables;
 import com.aoindustries.messaging.base.AbstractSocketContext;
 import com.aoindustries.messaging.tcp.TcpSocket;
 import com.aoindustries.security.Identifier;
@@ -89,7 +90,7 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 	 * 
 	 * @throws IllegalStateException  if closed or already started
 	 */
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "AssignmentToCatchBlockParameter", "ThrowableResultIgnored"})
 	public void start(
 		Callback<? super TcpSocketServer> onStart,
 		Callback<? super Throwable> onError
@@ -134,6 +135,11 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 								addSocket(tcpSocket);
 							}
 						} catch(ThreadDeath td) {
+							try {
+								if(!isClosed()) callOnError(td);
+							} catch(Throwable t) {
+								Throwables.addSuppressed(td, t);
+							}
 							throw td;
 						} catch(Throwable t) {
 							if(!isClosed()) callOnError(t);
@@ -159,21 +165,20 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 					} else {
 						logger.log(Level.FINE, "No onStart: {0}", TcpSocketServer.this);
 					}
-				} catch(ThreadDeath td) {
-					throw td;
 				} catch(Throwable t) {
 					if(onError != null) {
 						logger.log(Level.FINE, "Calling onError", t);
 						try {
 							onError.call(t);
 						} catch(ThreadDeath td) {
-							throw td;
+							t = Throwables.addSuppressed(t, td);
 						} catch(Throwable t2) {
 							logger.log(Level.SEVERE, null, t2);
 						}
 					} else {
 						logger.log(Level.FINE, "No onError", t);
 					}
+					if(t instanceof ThreadDeath) throw (ThreadDeath)t;
 				}
 			});
 		}
