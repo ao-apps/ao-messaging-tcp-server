@@ -79,7 +79,7 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 		try {
 			super.close();
 		} finally {
-			executors.dispose();
+			executors.close();
 		}
 	}
 
