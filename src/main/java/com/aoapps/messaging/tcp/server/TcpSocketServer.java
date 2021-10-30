@@ -87,7 +87,7 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 	 * Starts the I/O of a socket server.  After creation, a socket server does
 	 * not accept connections until started.  This allows listeners to be
 	 * registered between creation and start call.
-	 * 
+	 *
 	 * @throws IllegalStateException  if closed or already started
 	 */
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "AssignmentToCatchBlockParameter", "ThrowableResultIgnored"})
@@ -138,6 +138,7 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 							try {
 								if(!isClosed()) callOnError(td);
 							} catch(Throwable t) {
+								@SuppressWarnings("ThrowableResultIgnored")
 								Throwable t2 = Throwables.addSuppressed(td, t);
 								assert t2 == td;
 							}
