@@ -43,148 +43,162 @@ import java.util.logging.Logger;
  */
 public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
 
-	private static final Logger logger = Logger.getLogger(TcpSocketServer.class.getName());
+  private static final Logger logger = Logger.getLogger(TcpSocketServer.class.getName());
 
-	private static final boolean KEEPALIVE = true;
+  private static final boolean KEEPALIVE = true;
 
-	private static final boolean SOCKET_SO_LINGER_ENABLED = true;
-	private static final int SOCKET_SO_LINGER_SECONDS = 15;
+  private static final boolean SOCKET_SO_LINGER_ENABLED = true;
+  private static final int SOCKET_SO_LINGER_SECONDS = 15;
 
-	private static final boolean TCP_NO_DELAY = true;
+  private static final boolean TCP_NO_DELAY = true;
 
-	private final Executors executors = new Executors();
+  private final Executors executors = new Executors();
 
-	private final int port;
-	private final int backlog;
-	private final InetAddress bindAddr;
+  private final int port;
+  private final int backlog;
+  private final InetAddress bindAddr;
 
-	private final Object lock = new Object();
-	private ServerSocket serverSocket;
+  private final Object lock = new Object();
+  private ServerSocket serverSocket;
 
-	public TcpSocketServer(int port) {
-		this(port, 50, null);
-	}
+  public TcpSocketServer(int port) {
+    this(port, 50, null);
+  }
 
-	public TcpSocketServer(int port, int backlog) {
-		this(port, backlog, null);
-	}
+  public TcpSocketServer(int port, int backlog) {
+    this(port, backlog, null);
+  }
 
-	public TcpSocketServer(int port, int backlog, InetAddress bindAddr) {
-		this.port = port;
-		this.backlog = backlog;
-		this.bindAddr = bindAddr;
-	}
+  public TcpSocketServer(int port, int backlog, InetAddress bindAddr) {
+    this.port = port;
+    this.backlog = backlog;
+    this.bindAddr = bindAddr;
+  }
 
-	@Override
-	public void close() {
-		try {
-			super.close();
-		} finally {
-			executors.close();
-		}
-	}
+  @Override
+  public void close() {
+    try {
+      super.close();
+    } finally {
+      executors.close();
+    }
+  }
 
-	/**
-	 * Starts the I/O of a socket server.  After creation, a socket server does
-	 * not accept connections until started.  This allows listeners to be
-	 * registered between creation and start call.
-	 *
-	 * @throws IllegalStateException  if closed or already started
-	 */
-	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "AssignmentToCatchBlockParameter", "ThrowableResultIgnored"})
-	public void start(
-		Callback<? super TcpSocketServer> onStart,
-		Callback<? super Throwable> onError
-	) throws IllegalStateException {
-		if(isClosed()) throw new IllegalStateException("TcpSocketServer is closed");
-		synchronized(lock) {
-			if(serverSocket != null) throw new IllegalStateException();
-			executors.getUnbounded().submit(() -> {
-				try {
-					if(isClosed()) throw new SocketException("TcpSocketServer is closed");
-					final ServerSocket newServerSocket = new ServerSocket(port, backlog, bindAddr);
-					synchronized(lock) {
-						TcpSocketServer.this.serverSocket = newServerSocket;
-					}
-					// Handle incoming messages in a Thread, can try nio later
-					executors.getUnbounded().submit(() -> {
-						try {
-							while(true) {
-								synchronized(lock) {
-									// Check if closed
-									if(newServerSocket!=TcpSocketServer.this.serverSocket) break;
-								}
-								Socket socket = newServerSocket.accept();
-								long connectTime = System.currentTimeMillis();
-								socket.setKeepAlive(KEEPALIVE);
-								socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
-								socket.setTcpNoDelay(TCP_NO_DELAY);
-								StreamableInput in = new StreamableInput(socket.getInputStream());
-								StreamableOutput out = new StreamableOutput(socket.getOutputStream());
-								Identifier id = newIdentifier();
-								out.writeLong(id.getHi());
-								out.writeLong(id.getLo());
-								out.flush();
-								TcpSocket tcpSocket = new TcpSocket(
-									TcpSocketServer.this,
-									id,
-									connectTime,
-									socket,
-									in,
-									out
-								);
-								addSocket(tcpSocket);
-							}
-						} catch(ThreadDeath td) {
-							try {
-								if(!isClosed()) callOnError(td);
-							} catch(Throwable t) {
-								@SuppressWarnings("ThrowableResultIgnored")
-								Throwable t2 = Throwables.addSuppressed(td, t);
-								assert t2 == td;
-							}
-							throw td;
-						} catch(Throwable t) {
-							if(!isClosed()) callOnError(t);
-						} finally {
-							try {
-								close();
-							} catch(ThreadDeath td) {
-								throw td;
-							} catch(Throwable t) {
-								logger.log(Level.SEVERE, null, t);
-							}
-						}
-					});
-					if(onStart != null) {
-						logger.log(Level.FINE, "Calling onStart: {0}", TcpSocketServer.this);
-						try {
-							onStart.call(TcpSocketServer.this);
-						} catch(ThreadDeath td) {
-							throw td;
-						} catch(Throwable t) {
-							logger.log(Level.SEVERE, null, t);
-						}
-					} else {
-						logger.log(Level.FINE, "No onStart: {0}", TcpSocketServer.this);
-					}
-				} catch(Throwable t0) {
-					if(onError != null) {
-						logger.log(Level.FINE, "Calling onError", t0);
-						try {
-							onError.call(t0);
-						} catch(ThreadDeath td) {
-							t0 = Throwables.addSuppressed(td, t0);
-							assert t0 == td;
-						} catch(Throwable t2) {
-							logger.log(Level.SEVERE, null, t2);
-						}
-					} else {
-						logger.log(Level.FINE, "No onError", t0);
-					}
-					if(t0 instanceof ThreadDeath) throw (ThreadDeath)t0;
-				}
-			});
-		}
-	}
+  /**
+   * Starts the I/O of a socket server.  After creation, a socket server does
+   * not accept connections until started.  This allows listeners to be
+   * registered between creation and start call.
+   *
+   * @throws IllegalStateException  if closed or already started
+   */
+  @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "AssignmentToCatchBlockParameter", "ThrowableResultIgnored"})
+  public void start(
+    Callback<? super TcpSocketServer> onStart,
+    Callback<? super Throwable> onError
+  ) throws IllegalStateException {
+    if (isClosed()) {
+      throw new IllegalStateException("TcpSocketServer is closed");
+    }
+    synchronized (lock) {
+      if (serverSocket != null) {
+        throw new IllegalStateException();
+      }
+      executors.getUnbounded().submit(() -> {
+        try {
+          if (isClosed()) {
+            throw new SocketException("TcpSocketServer is closed");
+          }
+          final ServerSocket newServerSocket = new ServerSocket(port, backlog, bindAddr);
+          synchronized (lock) {
+            TcpSocketServer.this.serverSocket = newServerSocket;
+          }
+          // Handle incoming messages in a Thread, can try nio later
+          executors.getUnbounded().submit(() -> {
+            try {
+              while (true) {
+                synchronized (lock) {
+                  // Check if closed
+                  if (newServerSocket != TcpSocketServer.this.serverSocket) {
+                    break;
+                  }
+                }
+                Socket socket = newServerSocket.accept();
+                long connectTime = System.currentTimeMillis();
+                socket.setKeepAlive(KEEPALIVE);
+                socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
+                socket.setTcpNoDelay(TCP_NO_DELAY);
+                StreamableInput in = new StreamableInput(socket.getInputStream());
+                StreamableOutput out = new StreamableOutput(socket.getOutputStream());
+                Identifier id = newIdentifier();
+                out.writeLong(id.getHi());
+                out.writeLong(id.getLo());
+                out.flush();
+                TcpSocket tcpSocket = new TcpSocket(
+                  TcpSocketServer.this,
+                  id,
+                  connectTime,
+                  socket,
+                  in,
+                  out
+                );
+                addSocket(tcpSocket);
+              }
+            } catch (ThreadDeath td) {
+              try {
+                if (!isClosed()) {
+                  callOnError(td);
+                }
+              } catch (Throwable t) {
+                @SuppressWarnings("ThrowableResultIgnored")
+                Throwable t2 = Throwables.addSuppressed(td, t);
+                assert t2 == td;
+              }
+              throw td;
+            } catch (Throwable t) {
+              if (!isClosed()) {
+                callOnError(t);
+              }
+            } finally {
+              try {
+                close();
+              } catch (ThreadDeath td) {
+                throw td;
+              } catch (Throwable t) {
+                logger.log(Level.SEVERE, null, t);
+              }
+            }
+          });
+          if (onStart != null) {
+            logger.log(Level.FINE, "Calling onStart: {0}", TcpSocketServer.this);
+            try {
+              onStart.call(TcpSocketServer.this);
+            } catch (ThreadDeath td) {
+              throw td;
+            } catch (Throwable t) {
+              logger.log(Level.SEVERE, null, t);
+            }
+          } else {
+            logger.log(Level.FINE, "No onStart: {0}", TcpSocketServer.this);
+          }
+        } catch (Throwable t0) {
+          if (onError != null) {
+            logger.log(Level.FINE, "Calling onError", t0);
+            try {
+              onError.call(t0);
+            } catch (ThreadDeath td) {
+              t0 = Throwables.addSuppressed(td, t0);
+              assert t0 == td;
+            } catch (Throwable t2) {
+              logger.log(Level.SEVERE, null, t2);
+            }
+          } else {
+            logger.log(Level.FINE, "No onError", t0);
+          }
+          if (t0 instanceof ThreadDeath) {
+            throw (ThreadDeath)t0;
+          }
+        }
+      });
+    }
+  }
 }
