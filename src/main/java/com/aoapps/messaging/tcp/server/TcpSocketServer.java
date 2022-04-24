@@ -93,8 +93,8 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
    */
   @SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "AssignmentToCatchBlockParameter", "ThrowableResultIgnored"})
   public void start(
-    Callback<? super TcpSocketServer> onStart,
-    Callback<? super Throwable> onError
+      Callback<? super TcpSocketServer> onStart,
+      Callback<? super Throwable> onError
   ) throws IllegalStateException {
     if (isClosed()) {
       throw new IllegalStateException("TcpSocketServer is closed");
@@ -134,12 +134,12 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
                 out.writeLong(id.getLo());
                 out.flush();
                 TcpSocket tcpSocket = new TcpSocket(
-                  TcpSocketServer.this,
-                  id,
-                  connectTime,
-                  socket,
-                  in,
-                  out
+                    TcpSocketServer.this,
+                    id,
+                    connectTime,
+                    socket,
+                    in,
+                    out
                 );
                 addSocket(tcpSocket);
               }
@@ -195,7 +195,7 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
             logger.log(Level.FINE, "No onError", t0);
           }
           if (t0 instanceof ThreadDeath) {
-            throw (ThreadDeath)t0;
+            throw (ThreadDeath) t0;
           }
         }
       });
