@@ -61,14 +61,23 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
   private final Object lock = new Object();
   private ServerSocket serverSocket;
 
+  /**
+   * Creates a new TCP socket server.
+   */
   public TcpSocketServer(int port) {
     this(port, 50, null);
   }
 
+  /**
+   * Creates a new TCP socket server.
+   */
   public TcpSocketServer(int port, int backlog) {
     this(port, backlog, null);
   }
 
+  /**
+   * Creates a new TCP socket server.
+   */
   public TcpSocketServer(int port, int backlog, InetAddress bindAddr) {
     this.port = port;
     this.backlog = backlog;
@@ -122,14 +131,14 @@ public class TcpSocketServer extends AbstractSocketContext<TcpSocket> {
                     break;
                   }
                 }
-                Socket socket = newServerSocket.accept();
-                long connectTime = System.currentTimeMillis();
+                final Socket socket = newServerSocket.accept();
+                final long connectTime = System.currentTimeMillis();
                 socket.setKeepAlive(KEEPALIVE);
                 socket.setSoLinger(SOCKET_SO_LINGER_ENABLED, SOCKET_SO_LINGER_SECONDS);
                 socket.setTcpNoDelay(TCP_NO_DELAY);
-                StreamableInput in = new StreamableInput(socket.getInputStream());
-                StreamableOutput out = new StreamableOutput(socket.getOutputStream());
-                Identifier id = newIdentifier();
+                final StreamableInput in = new StreamableInput(socket.getInputStream());
+                final StreamableOutput out = new StreamableOutput(socket.getOutputStream());
+                final Identifier id = newIdentifier();
                 out.writeLong(id.getHi());
                 out.writeLong(id.getLo());
                 out.flush();
