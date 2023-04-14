@@ -22,7 +22,7 @@ Server for asynchronous bidirectional messaging over TCP sockets.
 * [Project Home](https://oss.aoapps.com/messaging/tcp/server/)
 * [Changelog](https://oss.aoapps.com/messaging/tcp/server/changelog)
 * [API Docs](https://oss.aoapps.com/messaging/tcp/server/apidocs/)
-* [Maven Central Repository](https://central.sonatype.com/search?namespace=com.aoapps&q=a%3Aao-messaging-tcp-server)
+* [Maven Central Repository](https://central.sonatype.com/artifact/com.aoapps/ao-messaging-tcp-server)
 * [GitHub](https://github.com/ao-apps/ao-messaging-tcp-server)
 
 ## Contact Us
